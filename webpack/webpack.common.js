@@ -5,7 +5,7 @@ const { InjectManifest } = require('workbox-webpack-plugin')
 const webpack = require('webpack')
 
 module.exports = {
-  entry: ['./src/scripts/game.ts', './webpack/credits.js'],
+  entry: ['./src/scripts/game.ts'],
   output: {
     path: path.resolve(__dirname, '../dist'),
     filename: '[name].bundle.js',
@@ -35,13 +35,8 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/assets', to: 'assets' },
-        { from: 'pwa', to: '' },
         { from: 'src/favicon.ico', to: '' }
       ]
     }),
-    new InjectManifest({
-      swSrc: path.resolve(__dirname, '../pwa/sw.js'),
-      swDest: 'sw.js'
-    })
   ]
 }
