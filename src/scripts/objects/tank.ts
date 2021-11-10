@@ -1,4 +1,4 @@
-import * as CONSTANTS from '../scenes/constants'
+import * as CONSTANTS from '../utility/constants'
 
 enum TankColor {
     Red = 'red',

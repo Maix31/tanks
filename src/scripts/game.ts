@@ -1,7 +1,7 @@
 import 'phaser'
 import MainScene from './scenes/mainScene'
 import PreloadScene from './scenes/preloadScene'
-import * as CONSTANTS from './scenes/constants'
+import * as CONSTANTS from './utility/constants'
 
 const config = {
   type: Phaser.AUTO,

@@ -1,6 +1,5 @@
 import FpsText from '../objects/fpsText'
 import MousePossitionText from '../objects/mousePossitionText';
-import * as CONSTANTS from '../scenes/constants'
 import { Tank }    from '../objects/tank'
 import { Terrain } from '../objects/terrain';
 
