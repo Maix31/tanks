@@ -28,6 +28,7 @@
     "workbox-webpack-plugin": "^6.0.2"
   },
   "dependencies": {
+    "@types/noisejs": "0.0.28",
     "phaser": "^3.55.2"
   }
 }
