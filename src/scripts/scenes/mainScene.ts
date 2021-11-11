@@ -1,4 +1,5 @@
 import FpsText from '../objects/fpsText'
+import { HealthBar } from '../objects/healthBar';
 import MousePossitionText from '../objects/mousePossitionText';
 import { Tank }    from '../objects/tank'
 import { Terrain } from '../objects/terrain';
@@ -14,6 +15,8 @@ export default class MainScene extends Phaser.Scene {
     mouse;
     tankLeft: Tank;
     tankRigth: Tank;
+    healthBarLeft: HealthBar;
+    healthBarRigth: HealthBar;
     fireButton: Phaser.GameObjects.Sprite;
     inputPower; // This is a HTMLInputElement
     inputAngle; // This is a HTMLInputElement
@@ -46,6 +49,11 @@ export default class MainScene extends Phaser.Scene {
         this.load.image('tankGunBlue', 'assets/tank_gun_blue_scaled.png');
         this.load.image('tankGunRed', 'assets/tank_gun_red_scaled.png');
 
+        this.load.image('barBackground', 'assets/bar_background.png');
+        this.load.image('barRed', 'assets/bar_red.png');
+        this.load.image('barBlue', 'assets/bar_blue.png');
+        this.load.image('barGlass', 'assets/bar_glass.png');
+
         this.load.image('fireButton', 'assets/fire_button.png');
 
         this.load.image('textPower', 'assets/power_input_text.png')
@@ -66,13 +74,22 @@ export default class MainScene extends Phaser.Scene {
         this.background.setPosition(this.background.width/2 * scalingFactorX, this.background.height/2 * scalingFactorY);
         this.background.setScale(width / this.background.width, height / this.background.height);
 
-        this.cloud = [...Array(1)].map((_, i) => {
+        this.cloud = [...Array(4)].map((_, i) => {
             let image = this.add.image(0,0, 'cloud_'+i);
             let scalingFactor = 1/8;
-            image.setPosition(image.width/2 * scalingFactor, image.height/2 * scalingFactor)
+            let randomOffsetX = randBetween(0, width  * (100 / 100))
+            let randomOffsetY = randBetween(0, height * (30 / 100))
+            image.setPosition(image.width/2 * scalingFactor + randomOffsetX, image.height/2 * scalingFactor  + randomOffsetY)
             image.setScale(scalingFactor);
             image.setAlpha(0.6);
-            // image
+            image.setFlipX(Math.random() < 0.5); // add more variation to the clouds
+            this.tweens.add({
+                targets: image,
+                x: width - image.width/2 * scalingFactor,
+                duration: randBetween(30,60) * 1000,
+                repeat: -1,
+                yoyo: true,
+            });
             return image;
         });
 
@@ -80,6 +97,10 @@ export default class MainScene extends Phaser.Scene {
         this.terrain = new Terrain(this, width, height);
         this.tankLeft  = new Tank(this, 0,0,100, 'tankBodyBlue', 'tankGunBlue', true);
         this.tankRigth = new Tank(this, width,0,100, 'tankBodyRed', 'tankGunRed', false);
+
+        this.healthBarLeft  = new HealthBar(this, width * (20 / 100), height * (10 / 100), 100,'barBackground', 'barBlue', 'barGlass');
+        this.healthBarRigth = new HealthBar(this, width * (80 / 100), height * (10 / 100), 100,'barBackground', 'barRed', 'barGlass');
+
         this.cursors = this.input.keyboard.createCursorKeys();
         
         let padding = { x : width * (5 / 100), y: height * (5 / 100)};
@@ -87,8 +108,8 @@ export default class MainScene extends Phaser.Scene {
         this.fireButton.setPosition(width - this.fireButton.width / 2 - padding.x,height- this.fireButton.height / 2 - padding.y);
         this.fireButton.setInteractive().on('pointerup', this.tankLeft.fire);
 
-        this.inputPower = this.add.dom(width * (50 / 100),height * (90 / 100), document.createElement('input'), `width:10%; placeholder="100"`);
-        this.inputAngle = this.add.dom(width * (50 / 100),height * (95 / 100), document.createElement('input'), `width:10%; placeholder="power"`);
+        this.inputPower = this.add.dom(width * (50 / 100),height * (90 / 100), document.createElement("input"), `width:10%; placeholder="100"`);
+        this.inputAngle = this.add.dom(width * (50 / 100),height * (95 / 100), document.createElement("input"), `width:10%; placeholder="power"`);
 
         this.textPower = this.add.image(width * (39 / 100),height * (90 / 100), 'textPower');
         this.textAngle = this.add.image(width * (39 / 100),height * (95 / 100), 'textAngle');
@@ -96,11 +117,11 @@ export default class MainScene extends Phaser.Scene {
         this.textAngle.scale = 90 / 100;
         this.inputPower.addListener('input');
         this.inputPower.on('input', (event) => {
-            this.tankLeft.setFirePower(Number(event.target.value));
+            this.tankLeft.setFirePower(parseFloat(event.target.value));
         })
         this.inputAngle.addListener('input');
         this.inputAngle.on('input', (event) => {
-            this.tankLeft.setGunAngle(Number(event.target.value));
+            this.tankLeft.setGunAngle(parseFloat(event.target.value));
         })
 
         this.basicProjectileSound    = this.sound.add('basicProjectileSound');

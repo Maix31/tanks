@@ -11,7 +11,11 @@ enum TankColor {
 export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би Image */ {
 
     static readonly movementSpeed: number = 0.02;
-    static readonly deafaultFirePower: number = 100;
+    static readonly deafaultFirePower: number = 50;
+    static readonly minGunAngle: number = 0;
+    static readonly maxGunAngle: number = 66;
+    static readonly minFirePower: number = 10;
+    static readonly maxFirePower: number = 100;
 
     // private scene: Phaser.Scene;
     private health: number;
@@ -124,8 +128,8 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
     }
 
     setFirePower(power: number) {
-        this.firePower = power;
-        console.log(this.firePower);
+        if (Number.isNaN(power)) power = 0;
+        this.firePower = Phaser.Math.Clamp(power, Tank.minFirePower, Tank.maxFirePower);
     }
 
     getFirePower() :number {
@@ -137,8 +141,8 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      * @param angle The angle is expressed in degrees
      */
     setGunAngle(angle: number) {
-        this.gun.angle = angle;
-        console.log(this.firePower);
+        if (Number.isNaN(angle)) angle = 0;   
+        this.gun.angle = -Phaser.Math.Clamp(angle, Tank.minGunAngle , Tank.maxGunAngle);
     }
 
     /**
