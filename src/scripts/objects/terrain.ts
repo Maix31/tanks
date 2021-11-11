@@ -1,11 +1,12 @@
 import {perlinNoise1D,  isInsideCircle} from '../utility/math'
 
+// The values are used for some math in Terrain.updateCanvas, so please don't change them
 enum Pixel {
     Air = 0,
     Ground = 1,
 }
 
-// The values are used for some math in Terrain.updateCanvas, so please don't change them
+// Seems to be using ~10mb per instance so use sparingly
 export class Terrain {
 
     // Refrence to the global context it might turn out that I don't need this field
@@ -13,6 +14,7 @@ export class Terrain {
 
     private width: number;
     private heigth: number;
+    // This needs to be a bit array
     private data: Pixel[];
 
     // We will be using this to draw the Terrain.data to

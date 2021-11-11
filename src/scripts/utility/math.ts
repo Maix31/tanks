@@ -1,3 +1,7 @@
+export function randBetween(min: number, max: number) {
+    return Math.random() * (max - min) + min;
+}
+
 export function isInsideCircle(x: number, y: number, radius: number) :boolean {
     // Originaly sqrt(X^2 + Y^2) = r 
     // we can get rid of the square root by squaring on both sides 

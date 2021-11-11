@@ -1,4 +1,5 @@
 import * as CONSTANTS from '../utility/constants'
+import { Terrain } from './terrain';
 
 enum TankColor {
     Red = 'red',
@@ -18,9 +19,19 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      */
     private isOnGround: boolean; // В момента спазвам идеята за енкапсулация от ООП, но не смятам че трява да е private
 
-    constructor(scene: Phaser.Scene, x: number ,y: number, health: number, texture: string | Phaser.Textures.Texture) {
-        super(scene, x, y, texture)
-        // this.scene = scene;
+    constructor(
+        scene: Phaser.Scene, 
+        x: number ,
+        y: number, 
+        health: number, 
+        textureBody: string | Phaser.Textures.Texture,
+        textureGun: string,
+        flipX :boolean,
+    ) {
+        
+        super(scene, x, y, textureBody)
+        this.setScale(1/2);
+        this.flipX = flipX;
         this.health = health;
 
         // This adds its to the the display list
@@ -65,5 +76,14 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
     turnGravityOn() {
         // Couldn't find another way to turn off the gravity and still by dynamic object
         this.setGravity(0,0);
+    }
+
+    collideWithTerrain(terrain: Terrain) {
+        if (terrain.checkCollision(this.x, this.y)) {
+            this.setAcceleration(0,0);
+            this.setVelocity(0,0);
+        } else {
+            this.setAcceleration(0,100);
+        }
     }
 }
