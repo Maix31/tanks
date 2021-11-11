@@ -1,6 +1,6 @@
 export default class MousePossitionText extends Phaser.GameObjects.Text {
   constructor(scene) {
-    super(scene, 10, 40, '', { color: 'black', fontSize: '28px' })
+    super(scene, 10, 70, '', { color: 'black', fontSize: '28px' })
     scene.add.existing(this)
     this.setOrigin(0)
   }

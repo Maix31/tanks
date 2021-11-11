@@ -39,7 +39,7 @@ export class Terrain {
         
         let noiseSeed = [...Array(this.width)].map(Math.random);
         // Set the first and last element to a specific height because perlinNoise1d samples at a fixed interval
-        noiseSeed[0] = 0.5;
+        noiseSeed[0] = 0.7;
 
         // Array holding height information per pixel on the surface in 0 to 1
         let surface = perlinNoise1D(noiseSeed, 8, 2);
@@ -77,7 +77,7 @@ export class Terrain {
                 // This wouldn't work because we migth have more than 1 y value for every x 
                 // let alphaValue = (-Phaser.Math.SmoothStep(surface[x] * heigth, y - 1, y) + 1) * 255;
                 arr[(x + y * this.width) * 4 + 0] = 0;          // R value
-                arr[(x + y * this.width) * 4 + 1] = 255;        // G value
+                arr[(x + y * this.width) * 4 + 1] = 150;        // G value
                 arr[(x + y * this.width) * 4 + 2] = 0;          // B value
                 arr[(x + y * this.width) * 4 + 3] = this.data[x + y * this.width] * 255; // A value
             }    

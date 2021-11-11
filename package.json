@@ -28,7 +28,7 @@
     "workbox-webpack-plugin": "^6.0.2"
   },
   "dependencies": {
-    "@types/noisejs": "0.0.28",
+    "@azerion/phaser-input": "^2.0.5",
     "phaser": "^3.55.2"
   }
 }
