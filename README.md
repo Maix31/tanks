@@ -1,6 +1,39 @@
-При yнсаследяване на Phaser.Scene.
-Защо ми дава, че this.camera.main e undefined след като съм извикал super()?
-Защо чак в create функцията мога да го използвам?
-_______________________________
+# Tanks
 
-Знам, че по-подразбиране всичко в класа е public, но не знам кое е най-добрата практика, дали трябва експлицитно да се пише public или не.
+Turn based 2D tank game.
+
+## Getting Started
+
+These instructions will get you a copy of the project up and running on your local machine for development.This is a Typescript project and its base local development requirements are [`Node.js`](https://nodejs.org/en/download/) and `npm` or `yarn`.
+
+
+### Installing
+
+A step by step series of examples that tell you how to get the project running
+
+Run this command once: 
+
+```
+npm install
+```
+
+This command will start a [localhost](http://localhost:8080/) dev server:
+
+```
+npm start
+```
+
+This command will start a [localhost](http://localhost:5000/) and local network dev server:
+
+```
+npm run serve
+```
+
+Open your browser at localhost:8080(by default) or click the link in the terminal.
+
+## Resources
+
+https://phaser.io/phaser3
+
+
+
