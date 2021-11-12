@@ -11,6 +11,7 @@ export default class MainScene extends Phaser.Scene {
     mousePossitionText;
     background: Phaser.GameObjects.Image;
     cloud: Phaser.GameObjects.Image[];
+    zeppelin: Phaser.GameObjects.Image;
     terrain: Terrain;
     mouse;
     tankLeft: Tank;
@@ -22,10 +23,16 @@ export default class MainScene extends Phaser.Scene {
     inputAngle; // This is a HTMLInputElement
     textPower: Phaser.GameObjects.Image;
     textAngle: Phaser.GameObjects.Image;
+    arrowButtonRigth: Phaser.GameObjects.Image;
+    arrowButtonLeft: Phaser.GameObjects.Image;
     basicProjectileSound: Phaser.Sound.BaseSound;
     superiorProjectileSound: Phaser.Sound.BaseSound;
     ambientMusic: Phaser.Sound.BaseSound;
+    uiClickSound: Phaser.Sound.BaseSound;
     cursors;
+
+    shouldMoveLeft: boolean;
+    shouldMoveRigth: boolean;
 
     constructor() {
         super({ key: 'MainScene' })
@@ -33,15 +40,14 @@ export default class MainScene extends Phaser.Scene {
 
     preload() {
 
-        this.load.html('nameform', 'assets/nameform.html');
-
         this.load.image('background', 'assets/background.png')
         
         this.load.image('cloud_0', 'assets/cloud_0.png')
         this.load.image('cloud_1', 'assets/cloud_1.png')
         this.load.image('cloud_2', 'assets/cloud_2.png')
         this.load.image('cloud_3', 'assets/cloud_3.png')
-        
+
+        this.load.image('zeppelin', 'assets/zeppelin.png');
 
         this.load.image('tankBodyBlue', 'assets/tank_body_blue_scaled.png');
         this.load.image('tankBodyRed', 'assets/tank_body_red_scaled.png');
@@ -59,11 +65,15 @@ export default class MainScene extends Phaser.Scene {
         this.load.image('textPower', 'assets/power_input_text.png')
         this.load.image('textAngle', 'assets/angle_input_text.png')
 
+        this.load.image('arrowRigth', 'assets/arrow_rigth.png')
+
         this.load.audio('basicProjectileSound', 'assets/basic_projectile.wav');
         this.load.audio('superiorProjectileSound', 'assets/superior_projectile.wav');
         this.load.audio('ambientMusic', 'assets/ambient_sound.wav');
     }
 
+    // Should refactor this function into a couple of functions
+    // 100 lines is too much
     create() {
 
         let { width, height } = this.cameras.main;
@@ -74,32 +84,34 @@ export default class MainScene extends Phaser.Scene {
         this.background.setPosition(this.background.width/2 * scalingFactorX, this.background.height/2 * scalingFactorY);
         this.background.setScale(width / this.background.width, height / this.background.height);
 
-        this.cloud = [...Array(4)].map((_, i) => {
-            let image = this.add.image(0,0, 'cloud_'+i);
-            let scalingFactor = 1/8;
-            let randomOffsetX = randBetween(0, width  * (100 / 100))
+        let addAnimatedImage = (imageName: string, flipX: boolean, alpha: number, scale: number) => {
+            let image = this.add.image(0,0, imageName);
+            let randomOffsetX = randBetween(-width  * (100 / 100), width  * (100 / 100))
             let randomOffsetY = randBetween(0, height * (30 / 100))
-            image.setPosition(image.width/2 * scalingFactor + randomOffsetX, image.height/2 * scalingFactor  + randomOffsetY)
-            image.setScale(scalingFactor);
-            image.setAlpha(0.6);
-            image.setFlipX(Math.random() < 0.5); // add more variation to the clouds
+            image.setPosition(image.width/2 * scale + randomOffsetX, image.height/2 * scale  + randomOffsetY)
+            image.setScale(scale);
+            image.setAlpha(alpha);
+            image.setFlipX(flipX); // add more variation to the clouds
             this.tweens.add({
                 targets: image,
-                x: width - image.width/2 * scalingFactor,
-                duration: randBetween(30,60) * 1000,
+                x: width * 2,
+                duration: randBetween(200,400) * 1000,
                 repeat: -1,
                 yoyo: true,
             });
             return image;
-        });
+        }
+
+        this.cloud = [...Array(4)].map( (_, i) => addAnimatedImage('cloud_' + i, Math.random() < 0.5, 0.6, 1/8));
+        this.zeppelin = addAnimatedImage('zeppelin', true, 1, 1/2);
 
         // Terrain could use diffrent width and heighth than pixel size of canvas but would require the use of scaling when drawing
         this.terrain = new Terrain(this, width, height);
         this.tankLeft  = new Tank(this, 0,0,100, 'tankBodyBlue', 'tankGunBlue', true);
         this.tankRigth = new Tank(this, width,0,100, 'tankBodyRed', 'tankGunRed', false);
 
-        this.healthBarLeft  = new HealthBar(this, width * (20 / 100), height * (10 / 100), 100,'barBackground', 'barBlue', 'barGlass');
-        this.healthBarRigth = new HealthBar(this, width * (80 / 100), height * (10 / 100), 100,'barBackground', 'barRed', 'barGlass');
+        this.healthBarLeft  = new HealthBar(this, width * (0 / 100), height * (10 / 100), 100,'barBackground', 'barBlue', 'barGlass');
+        this.healthBarRigth = new HealthBar(this, width * (68 / 100), height * (10 / 100), 100,'barBackground', 'barRed', 'barGlass');
 
         this.cursors = this.input.keyboard.createCursorKeys();
         
@@ -123,6 +135,16 @@ export default class MainScene extends Phaser.Scene {
         this.inputAngle.on('input', (event) => {
             this.tankLeft.setGunAngle(parseFloat(event.target.value));
         })
+
+        this.arrowButtonLeft  = this.add.image(width * (10 / 100), height * (90 / 100), 'arrowRigth');
+        this.arrowButtonRigth = this.add.image(width * (23 / 100), height * (90 / 100), 'arrowRigth');
+
+        this.arrowButtonLeft .setInteractive().on('pointerdown', (event) => this.shouldMoveLeft  = true );
+        this.arrowButtonLeft .setInteractive().on('pointerup',   (event) => this.shouldMoveLeft  = false);
+        this.arrowButtonRigth.setInteractive().on('pointerdown', (event) => this.shouldMoveRigth = true );
+        this.arrowButtonRigth.setInteractive().on('pointerup',   (event) => this.shouldMoveRigth = false);
+
+        this.arrowButtonLeft.flipX = true;
 
         this.basicProjectileSound    = this.sound.add('basicProjectileSound');
         this.superiorProjectileSound = this.sound.add('superiorProjectileSound');
@@ -162,10 +184,10 @@ export default class MainScene extends Phaser.Scene {
         this.tankLeft.collideWithTerrain(this.terrain);
         this.tankRigth.collideWithTerrain(this.terrain);
 
-        if (this.cursors.left.isDown)
+        if (this.cursors.left.isDown || this.shouldMoveLeft)
             this.tankLeft.moveLeft(delta);
             
-        if (this.cursors.right.isDown) 
+        if (this.cursors.right.isDown || this.shouldMoveRigth) 
             this.tankLeft.moveRight(delta);
 
         this.tankLeft.gunFollow();
