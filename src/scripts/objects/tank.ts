@@ -142,7 +142,7 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      */
     setGunAngle(angle: number) {
         if (Number.isNaN(angle)) angle = 0;   
-        this.gun.angle = -Phaser.Math.Clamp(angle, Tank.minGunAngle , Tank.maxGunAngle);
+        this.gun.angle = Phaser.Math.Clamp(angle, -Tank.maxGunAngle, -Tank.minGunAngle);
     }
 
     /**
@@ -150,6 +150,26 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      * @returns The angle is expressed in degrees
      */
     getGunAngle() :number {
-        return this.gun.angle
+        return -this.gun.angle
+    }
+
+    incrementFirePower() {
+        this.setFirePower(this.firePower + 1);
+    }
+
+    decrementFirePower() {
+        this.setFirePower(this.firePower - 1);
+    }
+
+    // I know it says increment but this is not a bug
+    // I actually need it to subtract from the angle
+    incrementGunAngle() {
+        this.setGunAngle(this.gun.angle - 1);
+    }
+
+    // I know it says decrement but this is not a bug
+    // I actually need it to add to the angle
+    decrementGunAngle() {
+        this.setGunAngle(this.gun.angle + 1);
     }
 }
