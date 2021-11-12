@@ -151,9 +151,6 @@ export default class MainScene extends Phaser.Scene {
         this.fireButton = this.add.sprite(0,0, 'fireButton');
         this.fireButton.setPosition(width - this.fireButton.width / 2 - padding.x,height- this.fireButton.height / 2 - padding.y);
         this.fireButton.setInteractive().on('pointerup', (event) => { 
-
-            console.debug('pointerup fireButton');
-
             this.uiClickSound.play();
             if(this.isItLeftPlayersTurn)
                 this.shouldFire = true;
@@ -257,11 +254,8 @@ export default class MainScene extends Phaser.Scene {
 
         handleProjectilePhysics(this, width, height);
 
-        this.tankLeft.collideWithTerrain(this.terrain);
-        this.tankRigth.collideWithTerrain(this.terrain);
-        
-        this.tankLeft.update(time, delta);
-        this.tankRigth.update(time, delta);
+        this.tankLeft.update(this.terrain, time, delta);
+        this.tankRigth.update(this.terrain, time, delta);
 
         // roundLogic(this,time,delta);
         // If we have a winner
@@ -274,8 +268,8 @@ export default class MainScene extends Phaser.Scene {
         this.textAngleNumber.setText(`${Math.round(-this.tankLeft.getGunAngle())}`);
 
         // Useful for debug
-        // this.fpsText.update();
-        // this.mousePossitionText.update();
+        this.fpsText.update();
+        this.mousePossitionText.update();
     }   
 }
 
@@ -325,16 +319,12 @@ function roundLogic(scene: MainScene, time: number, delta: number): Winner | und
 
     if (scene.isItLeftPlayersTurn) {
 
-        console.debug('Here1')
-
         // This makes so there can only be one projectile at any given time
         // Not sure how to use typescript optional
         if (scene.currentProjectile === undefined && scene.shouldFire) {
             scene.currentProjectile = scene.tankLeft.fire(scene);
             scene.shouldFire = false;
             scene.isItLeftPlayersTurn = !scene.isItLeftPlayersTurn;
-
-            console.debug('Here2')
 
             scene.timeSinceStartOfAITurn = time;
             scene.durationOfAITurn = randBetween(2, 3) * 1000;
@@ -346,11 +336,8 @@ function roundLogic(scene: MainScene, time: number, delta: number): Winner | und
         if (scene.cursors.right.isDown || scene.shouldMoveRigth) 
             scene.tankLeft.moveRight(delta);
     } else /* A.I. turn */ {
-
-        console.debug('Here3')
         // AI's time ran out
         if (Math.abs(time - scene.timeSinceStartOfAITurn) > scene.durationOfAITurn) {
-            console.debug('Here4')
             scene.currentProjectile = scene.tankRigth.fire(scene);
             scene.isItLeftPlayersTurn = !scene.isItLeftPlayersTurn;
         }

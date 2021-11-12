@@ -13,7 +13,7 @@ export class Terrain {
     // private scene: Phaser.Scene;
 
     private width: number;
-    private heigth: number;
+    private height: number;
     // This needs to be a bit array
     private data: Pixel[];
 
@@ -26,7 +26,7 @@ export class Terrain {
         // this.scene = scene;
 
         this.width  = width;
-        this.heigth = heigth;
+        this.height = heigth;
         this.data   = this.generateTerrain();
 
         this.canvas = this.initCanvas(scene);
@@ -35,7 +35,7 @@ export class Terrain {
     }
 
     private generateTerrain() : Pixel[] {
-        let data = Array<Pixel>(this.width * this.heigth);
+        let data = Array<Pixel>(this.width * this.height);
         
         let noiseSeed = [...Array(this.width)].map(Math.random);
         // Set the first and last element to a specific height because perlinNoise1d samples at a fixed interval
@@ -44,9 +44,9 @@ export class Terrain {
         // Array holding height information per pixel on the surface in 0 to 1
         let surface = perlinNoise1D(noiseSeed, 8, 2);
 
-        for (let y = 0; y < this.heigth; y++) {
+        for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
-                if (y >= (surface[x] * this.heigth)) 
+                if (y >= (surface[x] * this.height)) 
                     data[x + y * this.width] = Pixel.Ground;
                 else 
                     data[x + y * this.width] = Pixel.Air;
@@ -58,7 +58,7 @@ export class Terrain {
 
     // returning value doesn't make much sense
     private initCanvas(scene: Phaser.Scene): Phaser.Textures.CanvasTexture {
-        this.canvas = scene.textures.createCanvas('terrain', this.width, this.heigth);
+        this.canvas = scene.textures.createCanvas('terrain', this.width, this.height);
         this.updateCanvas();
         return this.canvas;
     }
@@ -68,8 +68,8 @@ export class Terrain {
      * This is an expensive operation! Measurement said its between 20ms to 5ms per call
      * */ 
     private updateCanvas() {
-        let arr = new Uint8ClampedArray(this.width * this.heigth * 4);
-        for (let y = 0; y < this.heigth; y++) {
+        let arr = new Uint8ClampedArray(this.width * this.height * 4);
+        for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
 
                 // 0   alpha value means 100% transperancy
@@ -115,7 +115,7 @@ export class Terrain {
     }
 
     private isOutsideBoundry(x: number, y: number) {
-        return x < 0 || x > this.width || y < 0 || y > this.heigth;
+        return x < 0 || x > this.width || y < 0 || y > this.height;
     }
 
     private setPixel(x: number, y: number, tile: Pixel) {
@@ -125,6 +125,10 @@ export class Terrain {
             
         // This took me 2-3 hours to figuer out that I need to use Math.floor()
         this.data[Math.floor(x) + Math.floor(y) * this.width] = tile;
+    }
+
+    getPixel(x: number, y: number) : Pixel {
+        return this.data[x + y * this.width];
     }
 
     public checkCollision(x: number, y: number): boolean {
@@ -139,6 +143,18 @@ export class Terrain {
             return false;
 
         return true;
+    }
+
+    getData() {
+        return this.data;
+    }
+
+    getWidth() {
+        return this.width;
+    }
+
+    getHeight() {
+        return this.height;
     }
 
     reset() {

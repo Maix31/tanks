@@ -1,3 +1,4 @@
+import { Sleeping } from 'matter';
 import * as CONSTANTS from '../utility/constants'
 import { randBetween } from '../utility/math';
 import { HealthBar } from './healthBar';
@@ -16,7 +17,7 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
     static readonly minFirePower: number = 10;
     static readonly maxFirePower: number = 100;
 
-    // private scene: Phaser.Scene;
+    scene: Phaser.Scene;
     private readonly initialHealth;
     private health: number;
     private firePower: number = Tank.deafaultFirePower;
@@ -43,6 +44,7 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         
         super(scene, x, y, textureBody)
         
+        this.scene = scene;
         this.scale = 1/2;
 
         this.setScale(this.scale);
@@ -80,7 +82,8 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.setAcceleration(0, 100);
     }
     
-    update(time: number, delta: number) {
+    update(terrain: Terrain, time: number, delta: number) {
+        this.collideWithTerrain(terrain);
         this.gunFollow();
     }
 
@@ -119,6 +122,53 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
 
     collideWithTerrain(terrain: Terrain) {
 
+        // const pi = 3.14159;
+        // const radius = this.height/2;
+        // let angle = Phaser.Math.DegToRad(this.angle);
+        
+        // let responseX = 0;
+        // let responseY = 0;
+
+        // let vX = this.body.velocity.x;
+        // let vY = this.body.velocity.y;
+
+        // let collision = true;
+
+        // for (let theta = angle - pi / 2; theta < angle + pi / 2; theta += pi / 8) {
+        //     let x = radius * Math.cos(theta) + this.x;
+        //     let y = radius * Math.sin(theta) + this.y
+
+        //     if (terrain.checkCollision(x,y)) {
+        //         responseX += this.x - x;
+        //         responseY += this.y - y;
+        //         collision = true;
+        //     }
+        // }
+
+        // let magVelocity = Math.sqrt(vX * vX + vY * vY )
+        // let magResponse = Math.sqrt(responseX * responseX + responseY * responseY );
+
+        // if (collision) {
+        //     let dot = vX * (responseX / magResponse) + vY * (responseY / magResponse);
+        //     this.setVelocity(
+        //         0.01 * (-2 * dot * (responseX / magResponse) + vX),
+        //         0.01 * (-2 * dot * (responseY / magResponse) + vY),
+        //     );            
+        // }
+
+        let x = Math.floor(this.x);
+        let y = Math.floor(this.y);
+
+        let radius = this.height / 2;
+
+        for (let i = y - radius; i < y + radius; i++ ) {
+            for (let j = x - radius; j < x + radius; j++ ) {
+                    if (terrain.getPixel(j, i) == 1) {
+                        // delay(10000);
+                        // console.log(terrain.getPixel(j, i));
+                    }
+            }
+        }
         if (terrain.checkCollision(this.x, this.y + this.height/3 )) {
             this.setAcceleration(0,0);
             this.setVelocity(0,0);
@@ -233,4 +283,8 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.health = this.initialHealth;
         this.healthBar.update(this.health);
     }
+}
+
+function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
 }

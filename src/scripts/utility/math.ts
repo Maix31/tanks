@@ -2,6 +2,20 @@ export function randBetween(min: number, max: number) {
     return Math.random() * (max - min) + min;
 }
 
+export function toPolar(x: number, y: number): {r: number, angle: number} {
+    return {
+        r: Math.sqrt(x*x + y*y),
+        angle: Math.atan2(y,x),
+    }
+}
+
+export function toCartesian(r: number, angle: number): {x: number, y: number} {
+    return {
+        x: r * Math.cos(angle),
+        y: r * Math.sin(angle),
+    }
+}
+
 export function isInsideCircle(x: number, y: number, radius: number) :boolean {
     // Originaly sqrt(X^2 + Y^2) = r 
     // we can get rid of the square root by squaring on both sides 
