@@ -1,12 +1,8 @@
 import * as CONSTANTS from '../utility/constants'
+import { randBetween } from '../utility/math';
 import { HealthBar } from './healthBar';
-import { BasicProjectile, createProjectile, Projectile, ProjectileType } from './projectile';
+import { createProjectile, Projectile, ProjectileType } from './projectile';
 import { Terrain } from './terrain';
-
-enum TankColor {
-    Red = 'red',
-    Blue = 'blue',
-}
 
 // колебая се дали композиция ще е по-добре от унаследяване
 // https://labs.phaser.io/edit.html?src=src/physics/arcade/extending%20arcade%20sprite.js&v=3.55.2 taken from example code
@@ -14,12 +10,14 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
 
     static readonly movementSpeed: number = 0.02;
     static readonly deafaultFirePower: number = 50;
+    static readonly deafaultHealth: number = 70;
     static readonly minGunAngle: number = 0;
     static readonly maxGunAngle: number = 66;
     static readonly minFirePower: number = 10;
     static readonly maxFirePower: number = 100;
 
     // private scene: Phaser.Scene;
+    private readonly initialHealth;
     private health: number;
     private firePower: number = Tank.deafaultFirePower;
     /**
@@ -36,11 +34,11 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         scene: Phaser.Scene, 
         x: number ,
         y: number, 
-        health: number, 
         heathBar: HealthBar,
         textureBody: string | Phaser.Textures.Texture,
         textureGun: string,
         flipX :boolean,
+        health: number = Tank.deafaultHealth, 
     ) {
         
         super(scene, x, y, textureBody)
@@ -49,8 +47,11 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
 
         this.setScale(this.scale);
         this.flipX = flipX;
+        this.initialHealth = health;
         this.health = health;
         this.healthBar = heathBar;
+
+        this.healthBar.setMaxHealth(this.health);
 
         this.gun = scene.add.image(x,y, textureGun);
         this.gun.flipX = flipX;
@@ -144,10 +145,13 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
 
     fire(scene: Phaser.Scene): Projectile {
 
+        // This is so projectiles won't always go in the positive x direction
+        let sign = this.flipX? 1 : -1;
+
         let v = new Phaser.Math.Vector2(this.getFirePower(), 0);
         v.rotate(Phaser.Math.DegToRad(this.gun.angle));
 
-        let projectile = createProjectile(scene, this.currentProjectile, this.gun.x, this.gun.y, v.x, v.y);
+        let projectile = createProjectile(scene, this.currentProjectile, this.gun.x, this.gun.y, sign * v.x, v.y);
         projectile.playSound();
         return projectile;
     }
@@ -218,5 +222,15 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
             // don't play the engine sound
         } else 
             this.engineSound.play();
+    }
+
+    getHealth(): number {
+        return this.health;
+    }
+
+    reset(width, min, max) {
+        this.setPosition(width  * (randBetween(min, max) / 100),  0);
+        this.health = this.initialHealth;
+        this.healthBar.update(this.health);
     }
 }

@@ -140,4 +140,9 @@ export class Terrain {
 
         return true;
     }
+
+    reset() {
+        this.data = this.generateTerrain();
+        this.updateCanvas();
+    }
 }

@@ -3,7 +3,7 @@
 // https://photonstorm.github.io/phaser3-docs/Phaser.GameObjects.Container.html
 export class HealthBar {
     
-    private readonly maxHealth: number;
+    private maxHealth: number;
     private health: number;
     private barGlass: Phaser.GameObjects.Image;
     private barBackground: Phaser.GameObjects.Image;
@@ -55,5 +55,9 @@ export class HealthBar {
         let percentHealthLeft = this.health / this.maxHealth;
 
         this.barColor.setCrop(0,0, this.barColor.width * percentHealthLeft, this.barColor.height);
+    }
+
+    setMaxHealth(health: number) {
+        this.maxHealth = health;
     }
 }

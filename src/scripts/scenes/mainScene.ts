@@ -26,6 +26,8 @@ export default class MainScene extends Phaser.Scene {
     angleButtonIncrement: Phaser.GameObjects.Image;
     angleButtonDecrement: Phaser.GameObjects.Image;
 
+    currentsTurnText: Phaser.GameObjects.Text;
+
     textPower: Phaser.GameObjects.Image;
     textAngle: Phaser.GameObjects.Image;
     textPowerNumber: Phaser.GameObjects.Text;
@@ -42,8 +44,14 @@ export default class MainScene extends Phaser.Scene {
 
     cursors;
 
+    timeSinceStartOfAITurn: number = 0;
+    durationOfAITurn: number = randBetween(2,3) * 1000;
+
     shouldMoveLeft: boolean = false;
     shouldMoveRigth: boolean = false;
+    shouldFire: boolean = false;
+
+    isItLeftPlayersTurn: boolean = Math.random() < 0.5;
 
     constructor() {
         super({ key: 'MainScene' })
@@ -134,8 +142,8 @@ export default class MainScene extends Phaser.Scene {
         let healthBarLeft  = new HealthBar(this, width * (0 / 100), height * (10 / 100), 100,'barBackground', 'barBlue', 'barGlass');
         let healthBarRigth = new HealthBar(this, width * (68 / 100), height * (10 / 100), 100,'barBackground', 'barRed', 'barGlass');
 
-        this.tankLeft  = new Tank(this, 0,0,100, healthBarLeft, 'tankBodyBlue', 'tankGunBlue', true);
-        this.tankRigth = new Tank(this, width,0,100, healthBarRigth, 'tankBodyRed', 'tankGunRed', false);
+        this.tankLeft  = new Tank(this, 0,0, healthBarLeft, 'tankBodyBlue', 'tankGunBlue', true);
+        this.tankRigth = new Tank(this, width,0, healthBarRigth, 'tankBodyRed', 'tankGunRed', false);
 
         this.cursors = this.input.keyboard.createCursorKeys();
         
@@ -143,11 +151,12 @@ export default class MainScene extends Phaser.Scene {
         this.fireButton = this.add.sprite(0,0, 'fireButton');
         this.fireButton.setPosition(width - this.fireButton.width / 2 - padding.x,height- this.fireButton.height / 2 - padding.y);
         this.fireButton.setInteractive().on('pointerup', (event) => { 
+
+            console.debug('pointerup fireButton');
+
             this.uiClickSound.play();
-            // Not sure how to use typescript optional
-            if (this.currentProjectile === undefined) {
-                this.currentProjectile = this.tankLeft.fire(this);
-            }
+            if(this.isItLeftPlayersTurn)
+                this.shouldFire = true;
         });
 
         this.powerButtonIncrement = this.add.image(width * (60 / 100), height * (88 / 100), 'plus' )
@@ -179,6 +188,8 @@ export default class MainScene extends Phaser.Scene {
                 this.uiClickSound.play(); 
                 this.tankLeft.decrementGunAngle();
             });
+
+        this.currentsTurnText = this.add.text(width * (50 / 100),0, '');
 
         this.textPower = this.add.image(width * (50 / 100),height * (88 / 100), 'textPower');
         this.textAngle = this.add.image(width * (50 / 100),height * (95 / 100), 'textAngle');
@@ -228,6 +239,7 @@ export default class MainScene extends Phaser.Scene {
         
         // Used for debugging purposes
         this.input.on('pointerup', (pointer) => {
+            // resetGame(this);
             // this.basicProjectileSound.play();
             // this.ambientSound.play();
             // this.terrain.damageTerrain(pointer.x, pointer.y,50);
@@ -236,7 +248,7 @@ export default class MainScene extends Phaser.Scene {
         this.fpsText = new FpsText(this)
         this.mousePossitionText = new MousePossitionText(this)
 
-        
+        resetGame(this)
     }
 
     update(time: number, delta: number) {
@@ -251,12 +263,12 @@ export default class MainScene extends Phaser.Scene {
         this.tankLeft.update(time, delta);
         this.tankRigth.update(time, delta);
 
-        if (this.cursors.left.isDown || this.shouldMoveLeft)
-            this.tankLeft.moveLeft(delta);
-            
-        if (this.cursors.right.isDown || this.shouldMoveRigth) 
-            this.tankLeft.moveRight(delta);
+        // roundLogic(this,time,delta);
+        // If we have a winner
+        if (roundLogic(this,time,delta) != undefined)
+            resetGame(this);
 
+        this.currentsTurnText.setText(`Current turn ${this.isItLeftPlayersTurn ? 'Player' : 'AI' }`);
         this.textPowerNumber.setText(`${Math.round(this.tankLeft.getFirePower())}`);
         // Angle is stored as a negative number
         this.textAngleNumber.setText(`${Math.round(-this.tankLeft.getGunAngle())}`);
@@ -277,6 +289,79 @@ type HitInformation = {
     hit?: PossibleHitTarget,
     object: any, // Questionable decision
     isTankInsideBlasRadius: boolean,
+}
+
+enum Winner {
+    tankLeft,
+    tankRight,
+}
+
+function resetGame(scene: MainScene) {
+    
+    let { width, height } = scene.cameras.main;
+
+    if (scene.currentProjectile !== undefined) 
+        scene.currentProjectile.destroy();
+
+    scene.shouldMoveLeft = false;
+    scene.shouldMoveRigth = false;
+    scene.shouldFire = false;
+
+    scene.tankLeft.reset(width,  1, 30)
+    scene.tankRigth.reset(width, 70, 99)
+
+    scene.terrain.reset()
+
+    scene.isItLeftPlayersTurn = Math.random() < 0.5;
+}
+
+function roundLogic(scene: MainScene, time: number, delta: number): Winner | undefined {
+
+    if (scene.tankLeft.getHealth() == 0)
+        return Winner.tankLeft;
+    else if ( (scene.tankRigth.getHealth() == 0))
+        return Winner.tankRight;
+
+
+    if (scene.isItLeftPlayersTurn) {
+
+        console.debug('Here1')
+
+        // This makes so there can only be one projectile at any given time
+        // Not sure how to use typescript optional
+        if (scene.currentProjectile === undefined && scene.shouldFire) {
+            scene.currentProjectile = scene.tankLeft.fire(scene);
+            scene.shouldFire = false;
+            scene.isItLeftPlayersTurn = !scene.isItLeftPlayersTurn;
+
+            console.debug('Here2')
+
+            scene.timeSinceStartOfAITurn = time;
+            scene.durationOfAITurn = randBetween(2, 3) * 1000;
+        }
+
+        if (scene.cursors.left.isDown || scene.shouldMoveLeft)
+            scene.tankLeft.moveLeft(delta);
+        
+        if (scene.cursors.right.isDown || scene.shouldMoveRigth) 
+            scene.tankLeft.moveRight(delta);
+    } else /* A.I. turn */ {
+
+        console.debug('Here3')
+        // AI's time ran out
+        if (Math.abs(time - scene.timeSinceStartOfAITurn) > scene.durationOfAITurn) {
+            console.debug('Here4')
+            scene.currentProjectile = scene.tankRigth.fire(scene);
+            scene.isItLeftPlayersTurn = !scene.isItLeftPlayersTurn;
+        }
+
+        // random movement
+        // But first i need to fix the physics
+        // (scene.timeSinceStartOfAITurn % 2 == 0) ? scene.tankRigth.moveLeft(delta) : scene.tankRigth.moveRight(delta);
+
+    }
+
+    return undefined;
 }
 
 function handleProjectilePhysics(scene: MainScene, width: number, height: number) {
