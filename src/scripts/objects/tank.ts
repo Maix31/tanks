@@ -1,4 +1,6 @@
 import * as CONSTANTS from '../utility/constants'
+import { HealthBar } from './healthBar';
+import { BasicProjectile, createProjectile, Projectile, ProjectileType } from './projectile';
 import { Terrain } from './terrain';
 
 enum TankColor {
@@ -25,12 +27,17 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      */
     private isOnGround: boolean; // В момента спазвам идеята за енкапсулация от ООП, но не смятам че трява да е private
     private gun: Phaser.GameObjects.Image;
+    private currentProjectile: ProjectileType;
+    private healthBar: HealthBar;
+
+    private engineSound: Phaser.Sound.BaseSound;
 
     constructor(
         scene: Phaser.Scene, 
         x: number ,
         y: number, 
         health: number, 
+        heathBar: HealthBar,
         textureBody: string | Phaser.Textures.Texture,
         textureGun: string,
         flipX :boolean,
@@ -43,11 +50,17 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.setScale(this.scale);
         this.flipX = flipX;
         this.health = health;
+        this.healthBar = heathBar;
 
         this.gun = scene.add.image(x,y, textureGun);
         this.gun.flipX = flipX;
         this.gun.setScale(this.scale)
         this.gun.setOrigin(0,0);
+
+        this.currentProjectile = ProjectileType.BasicProjectile;
+
+        // random engine sound
+        this.engineSound = scene.sound.add('engineSound' + Math.round(Math.random()));
 
         // This adds its to the the display list
         scene.add.existing(this);
@@ -66,19 +79,25 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.setAcceleration(0, 100);
     }
     
-    /**
-     * 
-     * @param dt in miliseconds
-     */
-    moveLeft(dt: number) {
-        this.x -= Tank.movementSpeed * dt;
+    update(time: number, delta: number) {
+        this.gunFollow();
     }
 
     /**
      * 
      * @param dt in miliseconds
      */
+    moveLeft(dt: number) {
+        this.playEngineSound();
+        this.x -= Tank.movementSpeed * dt;
+    }
+    
+    /**
+     * 
+     * @param dt in miliseconds
+     */
     moveRight(dt: number) {
+        this.playEngineSound();
         this.x += Tank.movementSpeed * dt;
     }
 
@@ -123,8 +142,14 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.gun.setPosition(this.x + offsetX, this.y - offsetY);
     }
 
-    fire() {
-        console.log('Boom!')
+    fire(scene: Phaser.Scene): Projectile {
+
+        let v = new Phaser.Math.Vector2(this.getFirePower(), 0);
+        v.rotate(Phaser.Math.DegToRad(this.gun.angle));
+
+        let projectile = createProjectile(scene, this.currentProjectile, this.gun.x, this.gun.y, v.x, v.y);
+        projectile.playSound();
+        return projectile;
     }
 
     setFirePower(power: number) {
@@ -147,10 +172,10 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
 
     /**
      * 
-     * @returns The angle is expressed in degrees
+     * @returns The angle is expressed in degrees and is a negative number
      */
     getGunAngle() :number {
-        return -this.gun.angle
+        return this.gun.angle
     }
 
     incrementFirePower() {
@@ -171,5 +196,27 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
     // I actually need it to add to the angle
     decrementGunAngle() {
         this.setGunAngle(this.gun.angle + 1);
+    }
+
+    setProjectile(projectile: ProjectileType) {
+        this.currentProjectile = projectile;
+    }
+
+    /**
+     * 
+     * @param damage Damage could potentialy be negative and heal the tank. Ill say this is a feature
+     */
+    takeDamage(damage: number) {
+        this.health -= damage;
+        if (this.health < 0) this.health = 0;
+
+        this.healthBar.update(this.health);
+    }
+
+    playEngineSound() {
+        if (this.engineSound.isPlaying) {
+            // don't play the engine sound
+        } else 
+            this.engineSound.play();
     }
 }
