@@ -91,7 +91,7 @@ export class Terrain {
         // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/filter
         
         // canvas.setFilter(Phaser.Textures.FilterMode.LINEAR);
-        // this.canvas.context.filter = 'blur(4px)';
+        this.canvas.context.filter = 'blur(16px)';
         // canvas.context.shadowBlur = 4;
 
         // To make changes call this
@@ -145,17 +145,17 @@ export class Terrain {
         return true;
     }
 
-    getData() {
-        return this.data;
-    }
+    // getData() {
+    //     return this.data;
+    // }
 
-    getWidth() {
-        return this.width;
-    }
+    // getWidth() {
+    //     return this.width;
+    // }
 
-    getHeight() {
-        return this.height;
-    }
+    // getHeight() {
+    //     return this.height;
+    // }
 
     reset() {
         this.data = this.generateTerrain();
