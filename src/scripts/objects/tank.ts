@@ -216,9 +216,9 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         let endOfGun = new Phaser.Math.Vector2(this.gun.width /2 * sign, - this.gun.height / 2);
         endOfGun.rotate(Phaser.Math.DegToRad(-1 * sign * this.gunAngle + this.angle));
 
-        this.scene.add.circle(this.gun.x, this.gun.y,2,0xffff00)
+        // this.scene.add.circle(this.gun.x, this.gun.y,2,0xffff00)
         // this.scene.add.circle(this.gun.x, this.gun.y + endOfGun.y,10,0xff0000)
-        this.scene.add.circle(this.x + endOfGun.x, this.y + endOfGun.y,2,0xff0000)
+        // this.scene.add.circle(this.x + endOfGun.x, this.y + endOfGun.y,2,0xff0000)
 
         let projectile = createProjectile(
             scene, this.currentProjectile, 
