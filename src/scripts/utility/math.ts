@@ -23,8 +23,6 @@ export function isInsideCircle(x: number, y: number, radius: number) :boolean {
     return (x*x + y*y) <= (radius * radius);
 }
 
-import { Scene } from 'phaser';
-
 // https://en.wikipedia.org/wiki/Perlin_noise
 export function perlinNoise1D(seed: number[], octaves: number, bias: number) {
     

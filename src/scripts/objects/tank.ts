@@ -24,8 +24,10 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
     /**
      * Flag telling us where it needs to be affected by gravity
      */
-    private isOnGround: boolean; // В момента спазвам идеята за енкапсулация от ООП, но не смятам че трява да е private
+    private isStable: boolean = false;
     private gun: Phaser.GameObjects.Image;
+    private gunAngle: number = 0; // number is in degrees
+    private tankAngle: number = 0; // number is in degrees
     private currentProjectile: ProjectileType;
     private healthBar: HealthBar;
 
@@ -58,7 +60,10 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.gun = scene.add.image(x,y, textureGun);
         this.gun.flipX = flipX;
         this.gun.setScale(this.scale)
-        this.gun.setOrigin(0,0);
+        if (this.gun.flipX)
+            this.gun.setOrigin(0,0.5);
+        else
+            this.gun.setOrigin(1,0.5);
 
         this.currentProjectile = ProjectileType.BasicProjectile;
 
@@ -71,7 +76,7 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
 
         // I'll be simulating gravity myself because of the terrain collision.
         // It gives me more control.
-        this.turnGravityOff();
+        this.setGravity(0,-CONSTANTS.GRAVITY); // For some reason just setting it to zero is not enough
 
         this.setCollideWorldBounds();
 
@@ -92,8 +97,14 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      * @param dt in miliseconds
      */
     moveLeft(dt: number) {
+        // this.isStable = false;
+        
+        // this.x -= Tank.movementSpeed * dt;
+
+        let offset = new Phaser.Math.Vector2(0, -Tank.movementSpeed).scale(dt).rotate(this.rotation - 3.1415/2);
+        this.body.position.add(offset);
+
         this.playEngineSound();
-        this.x -= Tank.movementSpeed * dt;
     }
     
     /**
@@ -101,78 +112,80 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      * @param dt in miliseconds
      */
     moveRight(dt: number) {
+        // this.isStable = false;
+        let offset = new Phaser.Math.Vector2(0, Tank.movementSpeed).scale(dt).rotate(this.rotation - 3.1415/2);
         this.playEngineSound();
-        this.x += Tank.movementSpeed * dt;
-    }
-
-    setGrounded(flag: boolean) {
-        this.isOnGround = flag;
-        this.turnGravityOff();
-    }
-
-    turnGravityOff() {
-        // Couldn't find another way to turn off the gravity and still by dynamic object
-        this.setGravity(0,-CONSTANTS.GRAVITY);
-    }
-
-    turnGravityOn() {
-        // Couldn't find another way to turn off the gravity and still by dynamic object
-        this.setGravity(0,0);
+        this.body.position.add(offset);
+        // this.x += Tank.movementSpeed * dt;
     }
 
     collideWithTerrain(terrain: Terrain) {
 
-        // const pi = 3.14159;
-        // const radius = this.height/2;
-        // let angle = Phaser.Math.DegToRad(this.angle);
+    // Helpers with debugging
+        // let graphics = this.scene.add.graphics();
         
-        // let responseX = 0;
-        // let responseY = 0;
+        // let drawLine = (x1, y1, x2, y2, color) => {
+        //     let line = new Phaser.Geom.Line(x1, y1, x2, y2);
+        //     graphics.lineStyle(2, color);
+        //     let lineObj = graphics.strokeLineShape(line);
+        //     setTimeout(() => {
+        //         lineObj.destroy()
+        //     }, 10);
+        // };
 
-        // let vX = this.body.velocity.x;
-        // let vY = this.body.velocity.y;
+        // let drawCircle = (x,y,r,color) => {
+        //     let circle = this.scene.add.circle(x,y,r,color);
+        //     setTimeout(() => {
+        //         circle.destroy();
+        //     }, 10);
+        // };
+    // Helpers END
 
-        // let collision = true;
+    // Code commented out is useful for debugging purposes don't delete it
 
-        // for (let theta = angle - pi / 2; theta < angle + pi / 2; theta += pi / 8) {
-        //     let x = radius * Math.cos(theta) + this.x;
-        //     let y = radius * Math.sin(theta) + this.y
+        let collided = false;
+        let responseVector = new Phaser.Math.Vector2(0,0);
+        let radius = this.height / 4;
+        let counter = 0;
+        for (let angle = this.angle; angle <  this.angle + 360; angle += 5) {
+            let radians = Phaser.Math.DegToRad(angle);
+            let pointAlongSemiCirlceRelativeToTank = new Phaser.Math.Vector2(radius * Math.cos(radians), radius * Math.sin(radians));
+            let pointAlongSemiCircle = new Phaser.Math.Vector2(this.x, this.y).add(pointAlongSemiCirlceRelativeToTank)
 
-        //     if (terrain.checkCollision(x,y)) {
-        //         responseX += this.x - x;
-        //         responseY += this.y - y;
-        //         collision = true;
-        //     }
-        // }
-
-        // let magVelocity = Math.sqrt(vX * vX + vY * vY )
-        // let magResponse = Math.sqrt(responseX * responseX + responseY * responseY );
-
-        // if (collision) {
-        //     let dot = vX * (responseX / magResponse) + vY * (responseY / magResponse);
-        //     this.setVelocity(
-        //         0.01 * (-2 * dot * (responseX / magResponse) + vX),
-        //         0.01 * (-2 * dot * (responseY / magResponse) + vY),
-        //     );            
-        // }
-
-        let x = Math.floor(this.x);
-        let y = Math.floor(this.y);
-
-        let radius = this.height / 2;
-
-        for (let i = y - radius; i < y + radius; i++ ) {
-            for (let j = x - radius; j < x + radius; j++ ) {
-                    if (terrain.getPixel(j, i) == 1) {
-                        // delay(10000);
-                        // console.log(terrain.getPixel(j, i));
-                    }
+            let color = 0xffffff;
+            if (terrain.checkCollision(pointAlongSemiCircle.x, pointAlongSemiCircle.y)) {
+                // if (this.flipX)
+                //     console.log(pointAlongSemiCirlceRelativeToTank);
+                counter += 1;
+                responseVector.x += pointAlongSemiCirlceRelativeToTank.x;
+                responseVector.y += pointAlongSemiCirlceRelativeToTank.y;
+                color = 0xff0000;
+                collided = true;
             }
+            // drawCircle(pointAlongSemiCircle.x, pointAlongSemiCircle.y, 1, color);
         }
-        if (terrain.checkCollision(this.x, this.y + this.height/3 )) {
-            this.setAcceleration(0,0);
+
+        if (counter !== 0 ) 
+            responseVector.scale(1/counter);
+
+        // if (this.flipX) {
+        //     console.log(responseVector);
+        // }
+        // drawLine(this.x, this.y, this.x + responseVector.x, this.y + responseVector.y, 0xff0000);
+
+        if (collided) {
+            // Round the number to prevent stuttering
+            let angle =  Math.atan2(responseVector.y, responseVector.x) - 3.1415/2;
+            angle = Math.round(angle * 10) / 10;
+            this.setRotation(angle);
+        }
+        
+        if (terrain.checkCollision(this.x, this.y)) {
+            this.isStable = true;
+            this.body.position.add(responseVector.negate());
             this.setVelocity(0,0);
-        } else {
+            this.setAcceleration(0,0);
+        } else if (!this.isStable) {
             this.setAcceleration(0,100);
         }
     }
@@ -181,16 +194,15 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      * Call this function when changining the possiting of the tank
      * otherwise they would seperate
      */
-    gunFollow() {
-        let offsetX;
-        if (this.flipX) 
-            offsetX = this.width  * (10 / 100) * this.scale;
-        else 
-            offsetX = -1*this.width  * (80 / 100) * this.scale;
+    private gunFollow() {
 
-        let offsetY = this.height * (38 / 100) * this.scale;
+        let sign = this.flipX? -1 : 1;
+        let offsetX = sign * this.width  * (10 / 100) * this.scale;
+        let offsetY = this.height * (31 / 100) * this.scale;
 
-        this.gun.setPosition(this.x + offsetX, this.y - offsetY);
+        this.gun.angle = sign * this.gunAngle + this.angle;
+
+        this.gun.setPosition(this.x - offsetX, this.y - offsetY);
     }
 
     fire(scene: Phaser.Scene): Projectile {
@@ -198,10 +210,23 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         // This is so projectiles won't always go in the positive x direction
         let sign = this.flipX? 1 : -1;
 
-        let v = new Phaser.Math.Vector2(this.getFirePower(), 0);
-        v.rotate(Phaser.Math.DegToRad(this.gun.angle));
+        let intialVector = new Phaser.Math.Vector2(this.firePower, 0);
+        intialVector.rotate(Phaser.Math.DegToRad(-this.gunAngle + this.angle + Math.PI / 2));
 
-        let projectile = createProjectile(scene, this.currentProjectile, this.gun.x, this.gun.y, sign * v.x, v.y);
+        let endOfGun = new Phaser.Math.Vector2(this.gun.width /2 * sign, - this.gun.height / 2);
+        endOfGun.rotate(Phaser.Math.DegToRad(-1 * sign * this.gunAngle + this.angle));
+
+        this.scene.add.circle(this.gun.x, this.gun.y,2,0xffff00)
+        // this.scene.add.circle(this.gun.x, this.gun.y + endOfGun.y,10,0xff0000)
+        this.scene.add.circle(this.x + endOfGun.x, this.y + endOfGun.y,2,0xff0000)
+
+        let projectile = createProjectile(
+            scene, this.currentProjectile, 
+            this.gun.x + endOfGun.x, 
+            this.gun.y + endOfGun.y, 
+            sign * intialVector.x, 
+            intialVector.y
+        );
         projectile.playSound();
         return projectile;
     }
@@ -221,7 +246,7 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      */
     setGunAngle(angle: number) {
         if (Number.isNaN(angle)) angle = 0;   
-        this.gun.angle = Phaser.Math.Clamp(angle, -Tank.maxGunAngle, -Tank.minGunAngle);
+        this.gunAngle = Phaser.Math.Clamp(angle, Tank.minGunAngle, Tank.maxGunAngle);
     }
 
     /**
@@ -229,7 +254,7 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
      * @returns The angle is expressed in degrees and is a negative number
      */
     getGunAngle() :number {
-        return this.gun.angle
+        return this.gunAngle
     }
 
     incrementFirePower() {
@@ -240,16 +265,12 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.setFirePower(this.firePower - 1);
     }
 
-    // I know it says increment but this is not a bug
-    // I actually need it to subtract from the angle
     incrementGunAngle() {
-        this.setGunAngle(this.gun.angle - 1);
+        this.setGunAngle(this.gunAngle + 1);
     }
 
-    // I know it says decrement but this is not a bug
-    // I actually need it to add to the angle
     decrementGunAngle() {
-        this.setGunAngle(this.gun.angle + 1);
+        this.setGunAngle(this.gunAngle - 1);
     }
 
     setProjectile(projectile: ProjectileType) {
@@ -257,10 +278,13 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
     }
 
     /**
-     * 
      * @param damage Damage could potentialy be negative and heal the tank. Ill say this is a feature
      */
     takeDamage(damage: number) {
+
+        this.isStable = false;
+        this.body.velocity.add(new Phaser.Math.Vector2(-Math.log(Math.abs(damage) + 1) * 30, 0).rotate(this.tankAngle + Math.PI / 2));
+
         this.health -= damage;
         if (this.health < 0) this.health = 0;
 
@@ -274,6 +298,10 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
             this.engineSound.play();
     }
 
+    stopEngineSound() {
+        this.engineSound.stop();
+    }
+
     getHealth(): number {
         return this.health;
     }
@@ -283,8 +311,4 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         this.health = this.initialHealth;
         this.healthBar.update(this.health);
     }
-}
-
-function delay(ms: number) {
-    return new Promise( resolve => setTimeout(resolve, ms) );
 }

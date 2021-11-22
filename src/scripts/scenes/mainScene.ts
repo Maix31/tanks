@@ -10,11 +10,11 @@ export default class MainScene extends Phaser.Scene {
   
     fpsText;
     mousePossitionText;
+
     background: Phaser.GameObjects.Image;
     zeppelin: Phaser.GameObjects.Image;
     cloud: Phaser.GameObjects.Image[];
     terrain: Terrain;
-    mouse;
 
     tankLeft: Tank;
     tankRigth: Tank;
@@ -26,6 +26,7 @@ export default class MainScene extends Phaser.Scene {
     angleButtonIncrement: Phaser.GameObjects.Image;
     angleButtonDecrement: Phaser.GameObjects.Image;
 
+    // Text telling us who's turn is it currently
     currentsTurnText: Phaser.GameObjects.Text;
 
     textPower: Phaser.GameObjects.Image;
@@ -36,13 +37,14 @@ export default class MainScene extends Phaser.Scene {
     arrowButtonRigth: Phaser.GameObjects.Image;
     arrowButtonLeft: Phaser.GameObjects.Image;
 
+    // currentIndex gives the current sprite from the sprite sheet 
     currentProjectileButton: {sprite: Phaser.GameObjects.Sprite, currentIndex: number};
     currentProjectile?: Projectile = undefined;
 
     ambientMusic: Phaser.Sound.BaseSound;
     uiClickSound: Phaser.Sound.BaseSound;
 
-    cursors;
+    cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
     timeSinceStartOfAITurn: number = 0;
     durationOfAITurn: number = randBetween(2,3) * 1000;
@@ -115,15 +117,15 @@ export default class MainScene extends Phaser.Scene {
         this.background.setPosition(this.background.width/2 * scalingFactorX, this.background.height/2 * scalingFactorY);
         this.background.setScale(width / this.background.width, height / this.background.height);
 
-        let addAnimatedImage = (imageName: string, flipX: boolean, alpha: number, scale: number) => {
+        let addAnimatedImage = (imageName: string, alpha: number, scale: number) => {
             let image = this.add.image(0,0, imageName);
             let randomOffsetX = randBetween(-width  * (100 / 100), width  * (100 / 100))
             let randomOffsetY = randBetween(0, height * (30 / 100))
             image.setPosition(image.width/2 * scale + randomOffsetX, image.height/2 * scale  + randomOffsetY)
             image.setScale(scale);
             image.setAlpha(alpha);
-            image.setFlipX(flipX); // add more variation to the clouds
             this.tweens.add({
+                flipX: true,
                 targets: image,
                 x: width * 2,
                 duration: randBetween(200,400) * 1000,
@@ -133,8 +135,8 @@ export default class MainScene extends Phaser.Scene {
             return image;
         }
 
-        this.cloud = [...Array(4)].map( (_, i) => addAnimatedImage('cloud_' + i, Math.random() < 0.5, 0.6, 1/8));
-        this.zeppelin = addAnimatedImage('zeppelin', true, 1, 1/2);
+        this.cloud = [...Array(4)].map( (_, i) => addAnimatedImage('cloud_' + i, 0.6, 1/8));
+        this.zeppelin = addAnimatedImage('zeppelin', 1, 1/2);
 
         // Terrain could use diffrent width and heighth than pixel size of canvas but would require the use of scaling when drawing
         this.terrain = new Terrain(this, width, height);
@@ -208,12 +210,12 @@ export default class MainScene extends Phaser.Scene {
 
         // This is a work around 
         // Needs refactoring
+        // there shouldn't be a need for current index
         this.currentProjectileButton = {
             currentIndex: 0,
             sprite: this.add.sprite(width * (70 / 100), height * (90 / 100),'currentProjectileButton', 0)
             .setInteractive()
             .on('pointerup', (event) => {
-                console.log(this.currentProjectileButton.currentIndex);
                 this.currentProjectileButton.currentIndex += 1;
                 this.currentProjectileButton.currentIndex %= 2;
                 this.currentProjectileButton.sprite.setFrame(this.currentProjectileButton.currentIndex);
@@ -257,15 +259,16 @@ export default class MainScene extends Phaser.Scene {
         this.tankLeft.update(this.terrain, time, delta);
         this.tankRigth.update(this.terrain, time, delta);
 
-        // roundLogic(this,time,delta);
         // If we have a winner
         if (roundLogic(this,time,delta) != undefined)
             resetGame(this);
 
+        // if 
+
         this.currentsTurnText.setText(`Current turn ${this.isItLeftPlayersTurn ? 'Player' : 'AI' }`);
         this.textPowerNumber.setText(`${Math.round(this.tankLeft.getFirePower())}`);
-        // Angle is stored as a negative number
-        this.textAngleNumber.setText(`${Math.round(-this.tankLeft.getGunAngle())}`);
+        // Angle is stored as a negative number, thus why I am multiplying by -1
+        this.textAngleNumber.setText(`${Math.round(this.tankLeft.getGunAngle())}`);
 
         // Useful for debug
         this.fpsText.update();
@@ -282,7 +285,7 @@ enum PossibleHitTarget {
 type HitInformation = {
     hit?: PossibleHitTarget,
     object: any, // Questionable decision
-    isTankInsideBlasRadius: boolean,
+    isTankInsideBlasRadius: boolean[],
 }
 
 enum Winner {
@@ -317,15 +320,17 @@ function roundLogic(scene: MainScene, time: number, delta: number): Winner | und
         return Winner.tankRight;
 
 
+    // Player's Turn
     if (scene.isItLeftPlayersTurn) {
 
-        // This makes so there can only be one projectile at any given time
+        // This makes it so there can only be one projectile at any given time
         // Not sure how to use typescript optional
         if (scene.currentProjectile === undefined && scene.shouldFire) {
             scene.currentProjectile = scene.tankLeft.fire(scene);
             scene.shouldFire = false;
-            scene.isItLeftPlayersTurn = !scene.isItLeftPlayersTurn;
 
+            // Start the turn of the AI
+            scene.isItLeftPlayersTurn = !scene.isItLeftPlayersTurn;
             scene.timeSinceStartOfAITurn = time;
             scene.durationOfAITurn = randBetween(2, 3) * 1000;
         }
@@ -335,16 +340,18 @@ function roundLogic(scene: MainScene, time: number, delta: number): Winner | und
         
         if (scene.cursors.right.isDown || scene.shouldMoveRigth) 
             scene.tankLeft.moveRight(delta);
+
     } else /* A.I. turn */ {
         // AI's time ran out
         if (Math.abs(time - scene.timeSinceStartOfAITurn) > scene.durationOfAITurn) {
+            scene.tankRigth.setGunAngle(randBetween(0, 66));
             scene.currentProjectile = scene.tankRigth.fire(scene);
             scene.isItLeftPlayersTurn = !scene.isItLeftPlayersTurn;
         }
 
         // random movement
         // But first i need to fix the physics
-        // (scene.timeSinceStartOfAITurn % 2 == 0) ? scene.tankRigth.moveLeft(delta) : scene.tankRigth.moveRight(delta);
+        (Math.ceil(scene.timeSinceStartOfAITurn) % 2 == 0) ? scene.tankRigth.moveLeft(delta) : scene.tankRigth.moveRight(delta);
 
     }
 
@@ -361,9 +368,11 @@ function handleProjectilePhysics(scene: MainScene, width: number, height: number
         }
     };
 
+    // If there is a projectile
     if (scene.currentProjectile != undefined) {
-        let hitInformation = checkForCollisionWithProjectile(scene.currentProjectile, scene.terrain, scene.tankRigth, width, height);
+        let hitInformation = checkForCollisionWithProjectile(scene.currentProjectile, scene.terrain, [scene.tankLeft, scene.tankRigth], width, height);
 
+        // If the projectile hit something
         if (hitInformation.hit != undefined) {
             switch (hitInformation.hit) {
                 case PossibleHitTarget.OutOfBounds: {
@@ -385,22 +394,24 @@ function handleProjectilePhysics(scene: MainScene, width: number, height: number
     }
 }
 
-function checkForCollisionWithProjectile(projectile: Projectile, terrain: Terrain, tank: Tank, width: number, height: number) : HitInformation {
+function checkForCollisionWithProjectile(projectile: Projectile, terrain: Terrain, tanks: Tank[], width: number, height: number) : HitInformation {
     
-    // Calculate ff projectile should damage the tank
+    // Calculate if projectile should damage the tank
     // this is not quite correct
     // Should do a non axis aligned bounding box check
     // but this is easier
-    let tankR = Math.max(tank.width, tank.height);
-    let {x: tankX, y: tankY} = tank.getCenter();
-    let distance = Phaser.Math.Distance.Between(projectile.x, projectile.y, tankX, tankY);
-    let insideBlastRadius = distance < tankR + projectile.getBlastRadius();
-
+    let insideBlastRadius: boolean[] = [];
+    for (let tank of tanks) {
+        let tankR = Math.max(tank.width, tank.height);
+        let {x: tankX, y: tankY} = tank.getCenter();
+        let distance = Phaser.Math.Distance.Between(projectile.x, projectile.y, tankX, tankY);
+        insideBlastRadius.push(distance < tankR + projectile.getBlastRadius());
+    }
     // If out of Bounds
     // Don't want to check if it leaves the upper border because it will still come back due to gravity 
     if ( projectile.x < 0 || 
-            projectile.x > width || 
-            projectile.y > height
+         projectile.x > width || 
+         projectile.y > height
     ) {
         return {
             hit: PossibleHitTarget.OutOfBounds,
@@ -413,12 +424,16 @@ function checkForCollisionWithProjectile(projectile: Projectile, terrain: Terrai
             object: terrain,
             isTankInsideBlasRadius: insideBlastRadius,
         };
-    } else if (projectile.collideTank(tank)) {
-        return {
-            hit: PossibleHitTarget.Tank,
-            object: tank,
-            isTankInsideBlasRadius: insideBlastRadius,
-        };
+    }
+
+    for (let tank of tanks) {
+        if (projectile.collideTank(tank)) {
+            return {
+                hit: PossibleHitTarget.Tank,
+                object: tank,
+                isTankInsideBlasRadius: insideBlastRadius,
+            };
+        }
     }
 
     return {
