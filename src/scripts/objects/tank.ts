@@ -306,8 +306,14 @@ export class Tank extends Phaser.Physics.Arcade.Sprite /* Или може би I
         return this.health;
     }
 
-    reset(width, min, max) {
+    resetBetween(width, min, max) {
         this.setPosition(width  * (randBetween(min, max) / 100),  0);
+        this.health = this.initialHealth;
+        this.healthBar.update(this.health);
+    }
+
+    reset(x, y) {
+        this.setPosition(x,  y);
         this.health = this.initialHealth;
         this.healthBar.update(this.health);
     }

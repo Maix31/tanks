@@ -22,22 +22,24 @@ export class Terrain {
     private canvas: Phaser.Textures.CanvasTexture;
     private terrainImage: Phaser.GameObjects.Image;
 
-    constructor(scene: Phaser.Scene, width: number, heigth: number) {
+    constructor(scene: Phaser.Scene, width: number, height: number, noiseSeed?: number[]) {
         // this.scene = scene;
 
         this.width  = width;
-        this.height = heigth;
-        this.data   = this.generateTerrain();
+        this.height = height;
+        this.data   = this.generateTerrain(noiseSeed);
 
         this.canvas = this.initCanvas(scene);
         // For some reason its coordiates aren't top left(0,0) but centre is (0,0) so translate by half the image
-        this.terrainImage = scene.add.image(width/2,heigth/2,this.canvas);
+        this.terrainImage = scene.add.image(width/2,height/2,this.canvas);
     }
 
-    private generateTerrain() : Pixel[] {
+    private generateTerrain(noiseSeed?: number[]) : Pixel[] {
+
         let data = Array<Pixel>(this.width * this.height);
         
-        let noiseSeed = [...Array(this.width)].map(Math.random);
+        if (noiseSeed === undefined)
+            noiseSeed = [...Array(this.width)].map(Math.random);
         // Set the first and last element to a specific height because perlinNoise1d samples at a fixed interval
         noiseSeed[0] = 0.7;
 
@@ -157,8 +159,8 @@ export class Terrain {
     //     return this.height;
     // }
 
-    reset() {
-        this.data = this.generateTerrain();
+    reset(noiseSeed?: number[]) {
+        this.data = this.generateTerrain(noiseSeed);
         this.updateCanvas();
     }
 }

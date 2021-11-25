@@ -5,6 +5,60 @@ import { Projectile } from '../objects/projectile';
 import { Tank }    from '../objects/tank'
 import { Terrain } from '../objects/terrain';
 import { randBetween } from '../utility/math'
+import * as Server from '../../server/main'
+
+import { io } from 'socket.io-client';
+
+// Not sure why adding ', {transports: ['websocket']}' resolved failing to connect
+var socket = io('ws://localhost:4000', {transports: ['websocket']});
+
+var receivedMyTank: Server.Tank | undefined = undefined;
+var receivedEnemyTank: Server.Tank | undefined = undefined;
+var receivedTerrain : Server.Terrain | undefined = undefined;
+
+var readyForMultiplayer = false;
+
+window.addEventListener('beforeunload', function (e) { 
+    
+    socket.emit('disconnect');
+    
+    // Cancel the event
+    // If you prevent default behavior in Mozilla Firefox prompt will always be shown
+    // e.preventDefault(); 
+    // Chrome requires returnValue to be set
+    // e.returnValue = '';
+});
+
+socket.emit('ready');
+
+socket.on('message', (msg) => {
+    console.log('Message:', msg);
+});
+
+socket.on('init-tanks', (myTank: Server.Tank, enemyTank: Server.Tank) => {
+    console.log(`init-tank: myTank = {} | enemyTank = {}`, myTank, enemyTank);
+    receivedMyTank = myTank;
+    receivedEnemyTank = enemyTank;
+});
+
+socket.on('init-terrain', (terrain: Server.Terrain) => {
+    console.log('init-terrain: ', terrain);
+    receivedTerrain = terrain;
+});
+
+socket.on('connect', () => {
+    console.log('Connected');
+});
+
+socket.on('game-over', () => {
+    console.log('Game over');
+    socket.disconnect();
+});
+
+socket.on("disconnect", (reason) => {
+    socket.disconnect();
+    console.log('Disconnected ', reason);
+});
 
 export default class MainScene extends Phaser.Scene {
   
@@ -260,7 +314,8 @@ export default class MainScene extends Phaser.Scene {
         this.tankRigth.update(this.terrain, time, delta);
 
         // If we have a winner
-        if (roundLogic(this,time,delta) != undefined)
+        // if (roundLogic(this,time,delta) != undefined)
+        if (roundLogicMultiplayer(this,time,delta) != undefined)
             resetGame(this);
 
         // if 
@@ -293,7 +348,7 @@ enum Winner {
     tankRight,
 }
 
-function resetGame(scene: MainScene) {
+function resetGame(scene: MainScene, noiseSeed?: number[]) {
     
     let { width, height } = scene.cameras.main;
 
@@ -304,13 +359,67 @@ function resetGame(scene: MainScene) {
     scene.shouldMoveRigth = false;
     scene.shouldFire = false;
 
-    scene.tankLeft.reset(width,  1, 30)
-    scene.tankRigth.reset(width, 70, 99)
+    scene.tankLeft.resetBetween(width,  1, 30)
+    scene.tankRigth.resetBetween(width, 70, 99)
 
-    scene.terrain.reset()
+    scene.terrain.reset(noiseSeed);
 
     scene.isItLeftPlayersTurn = Math.random() < 0.5;
 }
+
+function resetGameMultiplayer(
+    scene: MainScene, 
+    tankLeftPossition: {x: number, y: number}, 
+    tankRightPossition: {x: number, y: number},
+    noiseSeed?: number[], 
+) {
+    resetGame(scene, noiseSeed);
+
+    {
+        let { x,y } = tankLeftPossition;
+        scene.tankLeft.reset(x,y);
+    }
+    {
+        let { x,y } = tankRightPossition;
+        scene.tankRigth.reset(x,y);
+    }
+
+}
+
+function roundLogicMultiplayer(scene: MainScene, time: number, delta: number): Winner | undefined {
+    
+    // let {width, height} = scene.cameras.main;
+
+    if (receivedTerrain !== undefined && 
+        receivedMyTank    !== undefined && 
+        receivedEnemyTank    !== undefined && 
+        readyForMultiplayer === false
+    ) {
+
+        let tankLeft: Server.Tank, tankRight: Server.Tank;
+
+        if (receivedMyTank.color === Server.Color.Blue) {
+            tankLeft = receivedMyTank;
+            tankRight = receivedEnemyTank;
+        } else {
+            tankLeft = receivedEnemyTank;
+            tankRight = receivedMyTank;
+        }
+
+        resetGameMultiplayer(
+            scene, 
+            {x: tankLeft.x, y: tankLeft.y,},
+            {x: tankRight.x, y: tankRight.y,},
+            receivedTerrain.surfaceNoiseSeed
+        );   
+        socket.emit('ready');
+        readyForMultiplayer = true;
+    }
+
+    
+    return undefined;
+}
+    
 
 function roundLogic(scene: MainScene, time: number, delta: number): Winner | undefined {
 

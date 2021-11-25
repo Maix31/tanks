@@ -1,5 +1,6 @@
 const path = require('path')
 const nodeExternals = require('webpack-node-externals')
+const nodemonPlugin = require('nodemon-webpack-plugin');
 // const webpack = require('webpack')
 
 module.exports = {
@@ -8,7 +9,7 @@ module.exports = {
     app: ["./src/server/main.ts"]
   },
   output: {
-    path: path.resolve(__dirname, "built-server"),
+    path: path.resolve(__dirname, "../built-server"),
     filename: "main.js"
   },
   module: {
@@ -23,6 +24,6 @@ module.exports = {
   resolve: {
     extensions: [ '.tsx', '.ts', '.js' ],
   },
-  externals: [nodeExternals()],
+  externals: [nodeExternals(), nodemonPlugin()],
   mode: "development"
 }
